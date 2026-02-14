@@ -37,6 +37,22 @@ class ModelManager:
             return False
         return word in self.model
 
+class CommandHandler:
+    """Handles parsing and execution of user commands"""
+
+    def __init__(self, model_manager):
+        self.model_manager = model_manager
+
+    def validate_words(self, *words):
+        """Validate that all words exist in vocabulary"""
+        if not self.model_manager.is_loaded():
+            return False, "Model not loaded"
+
+        missing = [w for w in words if not self.model_manager.word_exists(w)]
+        if missing:
+            return False, f"Words not in vocabulary: {', '.join(missing)}"
+        return True, None
+
 def main():
     print("Word2Vec Explorer starting...")
 
