@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Word2Vec Explorer - Interactive REPL for exploring word embeddings
+
+Based on the paper "Efficient Estimation of Word Representations in Vector Space"
+by Mikolov et al. (2013)
 """
 
 import re
