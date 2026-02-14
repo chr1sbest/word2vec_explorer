@@ -3,6 +3,7 @@
 Word2Vec Explorer - Interactive REPL for exploring word embeddings
 """
 
+import re
 import gensim.downloader as api
 from gensim.models import KeyedVectors
 
@@ -103,6 +104,29 @@ class CommandHandler:
                 "word1": word1,
                 "word2": word2,
                 "similarity": float(similarity)
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def find(self, pattern, max_results=20):
+        """Search vocabulary for words matching pattern (supports * wildcard)"""
+        if not self.model_manager.is_loaded():
+            return {"success": False, "error": "Model not loaded"}
+
+        try:
+            # Convert wildcard pattern to regex
+            regex_pattern = pattern.replace('*', '.*')
+            regex = re.compile(f"^{regex_pattern}$", re.IGNORECASE)
+
+            matches = [w for w in self.model_manager._vocab if regex.match(w)]
+            matches = sorted(matches)[:max_results]
+
+            return {
+                "success": True,
+                "pattern": pattern,
+                "matches": matches,
+                "total": len(matches),
+                "truncated": len(matches) == max_results
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
