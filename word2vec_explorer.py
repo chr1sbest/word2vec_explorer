@@ -53,6 +53,22 @@ class CommandHandler:
             return False, f"Words not in vocabulary: {', '.join(missing)}"
         return True, None
 
+    def similar(self, word, n=10):
+        """Find N most similar words to the given word"""
+        valid, error = self.validate_words(word)
+        if not valid:
+            return {"success": False, "error": error}
+
+        try:
+            results = self.model_manager.model.most_similar(word, topn=n)
+            return {
+                "success": True,
+                "word": word,
+                "results": [{"word": w, "similarity": float(s)} for w, s in results]
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
 def main():
     print("Word2Vec Explorer starting...")
 
