@@ -69,6 +69,27 @@ class CommandHandler:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def analogy(self, word1, word2, word3, n=10):
+        """Find words where word1:word2 :: word3:X"""
+        valid, error = self.validate_words(word1, word2, word3)
+        if not valid:
+            return {"success": False, "error": error}
+
+        try:
+            # word2vec analogy: king - man + woman = queen
+            results = self.model_manager.model.most_similar(
+                positive=[word1, word3],
+                negative=[word2],
+                topn=n
+            )
+            return {
+                "success": True,
+                "analogy": f"{word1}:{word2} :: {word3}:?",
+                "results": [{"word": w, "similarity": float(s)} for w, s in results]
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
 def main():
     print("Word2Vec Explorer starting...")
 
