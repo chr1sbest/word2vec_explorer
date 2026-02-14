@@ -148,6 +148,95 @@ class CommandHandler:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+class OutputFormatter:
+    """Formats command results for terminal display"""
+
+    # ANSI color codes
+    BOLD = '\033[1m'
+    GREEN = '\033[92m'
+    BLUE = '\033[94m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    RESET = '\033[0m'
+
+    @staticmethod
+    def format_similar(result):
+        """Format similar command results"""
+        if not result["success"]:
+            return f"{OutputFormatter.RED}✗ {result['error']}{OutputFormatter.RESET}"
+
+        lines = [f"\n{OutputFormatter.BOLD}Most similar to '{result['word']}':{OutputFormatter.RESET}\n"]
+        for i, item in enumerate(result["results"], 1):
+            score = item["similarity"]
+            word = item["word"]
+            bar = "█" * int(score * 20)
+            lines.append(f"  {i:2}. {word:20} {OutputFormatter.GREEN}{score:.4f}{OutputFormatter.RESET} {bar}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def format_analogy(result):
+        """Format analogy command results"""
+        if not result["success"]:
+            return f"{OutputFormatter.RED}✗ {result['error']}{OutputFormatter.RESET}"
+
+        lines = [f"\n{OutputFormatter.BOLD}{result['analogy']}{OutputFormatter.RESET}\n"]
+        for i, item in enumerate(result["results"], 1):
+            score = item["similarity"]
+            word = item["word"]
+            bar = "█" * int(score * 20)
+            lines.append(f"  {i:2}. {word:20} {OutputFormatter.GREEN}{score:.4f}{OutputFormatter.RESET} {bar}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def format_distance(result):
+        """Format distance command results"""
+        if not result["success"]:
+            return f"{OutputFormatter.RED}✗ {result['error']}{OutputFormatter.RESET}"
+
+        score = result["similarity"]
+        bar = "█" * int(score * 40)
+        return (f"\n{OutputFormatter.BOLD}Distance between '{result['word1']}' and '{result['word2']}':{OutputFormatter.RESET}\n"
+                f"  Similarity: {OutputFormatter.GREEN}{score:.4f}{OutputFormatter.RESET} {bar}\n")
+
+    @staticmethod
+    def format_find(result):
+        """Format find command results"""
+        if not result["success"]:
+            return f"{OutputFormatter.RED}✗ {result['error']}{OutputFormatter.RESET}"
+
+        if not result["matches"]:
+            return f"\n{OutputFormatter.YELLOW}No matches found for pattern '{result['pattern']}'{OutputFormatter.RESET}\n"
+
+        lines = [f"\n{OutputFormatter.BOLD}Matches for '{result['pattern']}':{OutputFormatter.RESET}\n"]
+        for word in result["matches"]:
+            lines.append(f"  • {word}")
+
+        if result["truncated"]:
+            lines.append(f"\n  {OutputFormatter.YELLOW}(showing first {len(result['matches'])} results){OutputFormatter.RESET}")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def format_vector(result):
+        """Format vector command results"""
+        if not result["success"]:
+            return f"{OutputFormatter.RED}✗ {result['error']}{OutputFormatter.RESET}"
+
+        vec = result["vector"]
+        lines = [f"\n{OutputFormatter.BOLD}Vector for '{result['word']}' ({result['dimensions']} dimensions):{OutputFormatter.RESET}\n"]
+
+        # Show first 10 and last 10 values
+        lines.append(f"  First 10: {OutputFormatter.BLUE}{vec[:10]}{OutputFormatter.RESET}")
+        lines.append(f"  Last 10:  {OutputFormatter.BLUE}{vec[-10:]}{OutputFormatter.RESET}")
+
+        # Show statistics
+        import numpy as np
+        vec_array = np.array(vec)
+        lines.append(f"\n  Stats: min={vec_array.min():.4f}, max={vec_array.max():.4f}, "
+                    f"mean={vec_array.mean():.4f}, std={vec_array.std():.4f}\n")
+
+        return "\n".join(lines)
+
 def main():
     print("Word2Vec Explorer starting...")
 
