@@ -3,6 +3,9 @@
 Word2Vec Explorer - Interactive REPL for exploring word embeddings
 """
 
+import gensim.downloader as api
+from gensim.models import KeyedVectors
+
 class ModelManager:
     """Manages word2vec model loading and operations"""
 
@@ -14,7 +17,15 @@ class ModelManager:
 
     def load_model(self):
         """Load pre-trained word2vec model from gensim"""
-        pass  # Will implement in next step
+        print("Loading word2vec model (this takes 30-60 seconds on first run)...")
+        try:
+            self.model = api.load("word2vec-google-news-300")
+            self._vocab = set(self.model.index_to_key)
+            print(f"✓ Model loaded successfully! Vocabulary size: {len(self._vocab):,} words")
+        except Exception as e:
+            print(f"✗ Error loading model: {e}")
+            print("  Run: python -c 'import gensim.downloader as api; api.load(\"word2vec-google-news-300\")'")
+            raise
 
     def is_loaded(self):
         """Check if model is loaded"""
