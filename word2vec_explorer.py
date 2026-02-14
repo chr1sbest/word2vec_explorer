@@ -6,6 +6,10 @@ Word2Vec Explorer - Interactive REPL for exploring word embeddings
 import re
 import gensim.downloader as api
 from gensim.models import KeyedVectors
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import WordCompleter
 
 class ModelManager:
     """Manages word2vec model loading and operations"""
@@ -237,8 +241,148 @@ class OutputFormatter:
 
         return "\n".join(lines)
 
+class WordVecREPL:
+    """Interactive REPL for word2vec exploration"""
+
+    COMMANDS = ['analogy', 'similar', 'distance', 'find', 'vector', 'help', 'quit', 'exit']
+
+    def __init__(self):
+        self.model_manager = None
+        self.command_handler = None
+        self.formatter = OutputFormatter()
+        self.session = PromptSession(
+            history=InMemoryHistory(),
+            auto_suggest=AutoSuggestFromHistory(),
+            completer=WordCompleter(self.COMMANDS, ignore_case=True)
+        )
+
+    def start(self):
+        """Start the REPL"""
+        self.print_welcome()
+
+        # Load model
+        self.model_manager = ModelManager()
+        self.command_handler = CommandHandler(self.model_manager)
+
+        # Main loop
+        while True:
+            try:
+                user_input = self.session.prompt('\nword2vec> ').strip()
+
+                if not user_input:
+                    continue
+
+                if user_input.lower() in ['quit', 'exit']:
+                    print("\nGoodbye!")
+                    break
+
+                if user_input.lower() == 'help':
+                    self.print_help()
+                    continue
+
+                self.execute_command(user_input)
+
+            except KeyboardInterrupt:
+                continue
+            except EOFError:
+                print("\nGoodbye!")
+                break
+
+    def print_welcome(self):
+        """Print welcome message"""
+        print(f"\n{OutputFormatter.BOLD}{'='*60}{OutputFormatter.RESET}")
+        print(f"{OutputFormatter.BOLD}  Word2Vec Explorer - Interactive Embedding Explorer{OutputFormatter.RESET}")
+        print(f"{OutputFormatter.BOLD}{'='*60}{OutputFormatter.RESET}\n")
+        print("Type 'help' for available commands or 'quit' to exit.\n")
+
+    def print_help(self):
+        """Print help message"""
+        help_text = f"""
+{OutputFormatter.BOLD}Available Commands:{OutputFormatter.RESET}
+
+  {OutputFormatter.BLUE}analogy{OutputFormatter.RESET} word1 word2 word3
+      Find X where word1:word2 :: word3:X
+      Example: analogy king man woman
+               (finds "queen" - king is to man as woman is to queen)
+
+  {OutputFormatter.BLUE}similar{OutputFormatter.RESET} word [n]
+      Find N most similar words (default n=10)
+      Example: similar python 5
+
+  {OutputFormatter.BLUE}distance{OutputFormatter.RESET} word1 word2
+      Calculate cosine similarity between two words
+      Example: distance cat dog
+
+  {OutputFormatter.BLUE}find{OutputFormatter.RESET} pattern
+      Search vocabulary (use * as wildcard)
+      Example: find prog*
+
+  {OutputFormatter.BLUE}vector{OutputFormatter.RESET} word
+      Display the embedding vector for a word
+      Example: vector king
+
+  {OutputFormatter.BLUE}help{OutputFormatter.RESET}
+      Show this help message
+
+  {OutputFormatter.BLUE}quit{OutputFormatter.RESET} / {OutputFormatter.BLUE}exit{OutputFormatter.RESET}
+      Exit the explorer
+"""
+        print(help_text)
+
+    def execute_command(self, user_input):
+        """Parse and execute user command"""
+        parts = user_input.split()
+        if not parts:
+            return
+
+        cmd = parts[0].lower()
+        args = parts[1:]
+
+        if cmd == 'analogy':
+            if len(args) < 3:
+                print(f"{OutputFormatter.RED}Usage: analogy word1 word2 word3 [n]{OutputFormatter.RESET}")
+                return
+            n = int(args[3]) if len(args) > 3 else 10
+            result = self.command_handler.analogy(args[0], args[1], args[2], n)
+            print(self.formatter.format_analogy(result))
+
+        elif cmd == 'similar':
+            if len(args) < 1:
+                print(f"{OutputFormatter.RED}Usage: similar word [n]{OutputFormatter.RESET}")
+                return
+            n = int(args[1]) if len(args) > 1 else 10
+            result = self.command_handler.similar(args[0], n)
+            print(self.formatter.format_similar(result))
+
+        elif cmd == 'distance':
+            if len(args) < 2:
+                print(f"{OutputFormatter.RED}Usage: distance word1 word2{OutputFormatter.RESET}")
+                return
+            result = self.command_handler.distance(args[0], args[1])
+            print(self.formatter.format_distance(result))
+
+        elif cmd == 'find':
+            if len(args) < 1:
+                print(f"{OutputFormatter.RED}Usage: find pattern{OutputFormatter.RESET}")
+                return
+            result = self.command_handler.find(args[0])
+            print(self.formatter.format_find(result))
+
+        elif cmd == 'vector':
+            if len(args) < 1:
+                print(f"{OutputFormatter.RED}Usage: vector word{OutputFormatter.RESET}")
+                return
+            result = self.command_handler.vector(args[0])
+            print(self.formatter.format_vector(result))
+
+        else:
+            print(f"{OutputFormatter.RED}Unknown command: {cmd}{OutputFormatter.RESET}")
+            print("Type 'help' for available commands.")
+
 def main():
-    print("Word2Vec Explorer starting...")
+    """Entry point for word2vec explorer"""
+    repl = WordVecREPL()
+    repl.start()
 
 if __name__ == "__main__":
     main()
