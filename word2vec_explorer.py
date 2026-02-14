@@ -90,6 +90,23 @@ class CommandHandler:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def distance(self, word1, word2):
+        """Calculate cosine similarity between two words"""
+        valid, error = self.validate_words(word1, word2)
+        if not valid:
+            return {"success": False, "error": error}
+
+        try:
+            similarity = self.model_manager.model.similarity(word1, word2)
+            return {
+                "success": True,
+                "word1": word1,
+                "word2": word2,
+                "similarity": float(similarity)
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
 def main():
     print("Word2Vec Explorer starting...")
 
