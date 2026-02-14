@@ -131,6 +131,23 @@ class CommandHandler:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def vector(self, word):
+        """Get the embedding vector for a word"""
+        valid, error = self.validate_words(word)
+        if not valid:
+            return {"success": False, "error": error}
+
+        try:
+            vec = self.model_manager.model[word]
+            return {
+                "success": True,
+                "word": word,
+                "vector": vec.tolist(),
+                "dimensions": len(vec)
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
 def main():
     print("Word2Vec Explorer starting...")
 
