@@ -27,6 +27,8 @@ An educational interactive Python REPL for exploring word2vec embeddings through
 **2. Command Layer**
 - Implements five core operations:
   - `analogy word1 word2 word3` - finds X where "word1:word2 :: word3:X"
+    - Uses the classic word2vec formula: word1 - word2 + word3
+    - Example: king - man + woman = queen
   - `similar word [n]` - finds N most similar words (default 10)
   - `distance word1 word2` - computes cosine similarity score
   - `find pattern` - searches vocabulary with wildcard support
