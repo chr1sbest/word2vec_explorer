@@ -78,16 +78,19 @@ class CommandHandler:
             return {"success": False, "error": str(e)}
 
     def analogy(self, word1, word2, word3, n=10):
-        """Find words where word1:word2 :: word3:X"""
+        """Find words where word1:word2 :: word3:X
+
+        Solves: word1 - word2 = word3 - X
+        Therefore: X = word3 - word1 + word2 = word2 + word3 - word1
+        """
         valid, error = self.validate_words(word1, word2, word3)
         if not valid:
             return {"success": False, "error": error}
 
         try:
-            # word2vec analogy: king - man + woman = queen
             results = self.model_manager.model.most_similar(
-                positive=[word1, word3],
-                negative=[word2],
+                positive=[word2, word3],
+                negative=[word1],
                 topn=n
             )
             return {
