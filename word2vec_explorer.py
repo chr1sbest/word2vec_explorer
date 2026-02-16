@@ -12,6 +12,8 @@ from gensim.models import KeyedVectors
 from tqdm import tqdm
 import sys
 import os
+import threading
+import time
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -46,14 +48,26 @@ class ModelManager:
                 print(f"\n📥 Downloading {self.model_name}...")
                 print(f"   Size: {size_mb:.0f}MB")
                 print(f"   Destination: {api.BASE_DIR}")
-                print(f"   (After download: ~30s to initialize into memory)\n")
+                print(f"   (After download: 2-5 min to initialize into memory)\n")
             else:
                 print(f"\n📥 Loading {self.model_name} from cache...")
-                print(f"   (Initializing into memory: ~10-20s)\n")
+                print(f"   (Initializing into memory: 2-5 minutes)\n")
         except Exception as e:
             # Fallback if info check fails, but still show time estimate
             print(f"\n📥 Loading {self.model_name}...")
-            print(f"   (Download + initialization may take 2-3 minutes on first run)\n")
+            print(f"   (Download + initialization: 3-8 minutes on first run)\n")
+
+        # Spinner for initialization phase
+        stop_spinner = threading.Event()
+        def show_spinner():
+            """Show a spinner during model initialization"""
+            spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+            idx = 0
+            while not stop_spinner.is_set():
+                print(f'\r⚙️  Initializing model {spinner_chars[idx % len(spinner_chars)]}', end='', flush=True)
+                idx += 1
+                time.sleep(0.1)
+            print('\r' + ' ' * 50 + '\r', end='', flush=True)  # Clear spinner line
 
         try:
             # Suppress gensim's verbose output but keep progress bar
@@ -67,8 +81,16 @@ class ModelManager:
             # Load with cleaner progress
             original_stdout = sys.stdout
 
+            # Start spinner thread for initialization
+            spinner_thread = threading.Thread(target=show_spinner, daemon=True)
+            spinner_thread.start()
+
             # Load model (download if needed + initialize into memory)
             self.model = api.load(self.model_name)
+
+            # Stop spinner
+            stop_spinner.set()
+            spinner_thread.join(timeout=0.5)
 
             self._vocab = set(self.model.index_to_key)
 
