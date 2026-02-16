@@ -14,9 +14,6 @@ import sys
 import os
 import threading
 import time
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -228,80 +225,6 @@ class CommandHandler:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def visualize(self, words):
-        """Visualize words in 2D space using PCA
-
-        Args:
-            words: List of words to visualize, or category name
-
-        Categories:
-            - royalty: king, queen, prince, princess
-            - family: man, woman, uncle, aunt, father, mother
-            - food: sushi, pasta, pizza, taco, poutine
-            - countries: japan, canada, italy, germany, france
-        """
-        # Predefined categories for easy exploration
-        categories = {
-            'royalty': ['king', 'queen', 'prince', 'princess', 'monarch', 'emperor', 'crown'],
-            'family': ['man', 'woman', 'uncle', 'aunt', 'father', 'mother', 'brother', 'sister'],
-            'food': ['sushi', 'pasta', 'pizza', 'taco', 'poutine', 'burger', 'noodles'],
-            'countries': ['japan', 'canada', 'italy', 'germany', 'france', 'spain', 'china'],
-            'animals': ['dog', 'cat', 'lion', 'tiger', 'elephant', 'giraffe', 'zebra'],
-            'colors': ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'black', 'white']
-        }
-
-        # Check if input is a category
-        if len(words) == 1 and words[0].lower() in categories:
-            words = categories[words[0].lower()]
-            category_name = words[0].lower().title()
-        else:
-            category_name = "Custom Words"
-
-        # Validate words exist
-        valid, error = self.validate_words(*words)
-        if not valid:
-            return {"success": False, "error": error}
-
-        try:
-            # Get vectors for all words
-            vectors = np.array([self.model_manager.model[word] for word in words])
-
-            # Reduce to 2D using PCA
-            pca = PCA(n_components=2)
-            coords_2d = pca.fit_transform(vectors)
-
-            # Create plot
-            plt.figure(figsize=(12, 8))
-            plt.scatter(coords_2d[:, 0], coords_2d[:, 1], s=100, alpha=0.6, c='steelblue')
-
-            # Label each point
-            for i, word in enumerate(words):
-                plt.annotate(word,
-                           xy=(coords_2d[i, 0], coords_2d[i, 1]),
-                           xytext=(5, 5),
-                           textcoords='offset points',
-                           fontsize=12,
-                           fontweight='bold')
-
-            plt.title(f'Word Embeddings Visualization: {category_name}\n(300D vectors reduced to 2D using PCA)',
-                     fontsize=14, fontweight='bold')
-            plt.xlabel(f'First Principal Component ({pca.explained_variance_ratio_[0]:.1%} variance)', fontsize=11)
-            plt.ylabel(f'Second Principal Component ({pca.explained_variance_ratio_[1]:.1%} variance)', fontsize=11)
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-
-            # Show plot
-            plt.show()
-
-            return {
-                "success": True,
-                "words": words,
-                "category": category_name,
-                "variance_explained": f"{sum(pca.explained_variance_ratio_):.1%}"
-            }
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-
 class OutputFormatter:
     """Formats command results for terminal display"""
 
@@ -391,24 +314,10 @@ class OutputFormatter:
 
         return "\n".join(lines)
 
-    @staticmethod
-    def format_visualize(result):
-        """Format visualize command results"""
-        if not result["success"]:
-            return f"{OutputFormatter.RED}✗ {result['error']}{OutputFormatter.RESET}"
-
-        lines = [f"\n{OutputFormatter.GREEN}✓ Visualization created!{OutputFormatter.RESET}"]
-        lines.append(f"  Category: {OutputFormatter.BOLD}{result['category']}{OutputFormatter.RESET}")
-        lines.append(f"  Words: {', '.join(result['words'])}")
-        lines.append(f"  Variance explained by 2D: {result['variance_explained']}")
-        lines.append(f"\n{OutputFormatter.YELLOW}  → Plot window opened (close to continue){OutputFormatter.RESET}\n")
-
-        return "\n".join(lines)
-
 class WordVecREPL:
     """Interactive REPL for word2vec exploration"""
 
-    COMMANDS = ['analogy', 'similar', 'distance', 'find', 'vector', 'visualize', 'viz', 'help', 'quit', 'exit']
+    COMMANDS = ['analogy', 'similar', 'distance', 'find', 'vector', 'help', 'quit', 'exit']
 
     def __init__(self, model_name=None):
         self.model_manager = None
@@ -485,12 +394,6 @@ class WordVecREPL:
   {OutputFormatter.BLUE}vector{OutputFormatter.RESET} word
       Display the embedding vector for a word
       Example: vector king
-
-  {OutputFormatter.BLUE}visualize{OutputFormatter.RESET} words... / {OutputFormatter.BLUE}viz{OutputFormatter.RESET} category
-      Show 2D visualization of word relationships
-      Example: visualize king queen prince princess
-               visualize family
-      Categories: royalty, family, food, countries, animals, colors
 
   {OutputFormatter.BLUE}help{OutputFormatter.RESET}
       Show this help message
@@ -574,16 +477,6 @@ class WordVecREPL:
                 return
             result = self.command_handler.vector(args[0])
             print(self.formatter.format_vector(result))
-
-        elif cmd == 'visualize' or cmd == 'viz':
-            if len(args) < 1:
-                print(f"{OutputFormatter.RED}Usage: visualize <word1> <word2> ... or visualize <category>{OutputFormatter.RESET}")
-                print(f"{OutputFormatter.YELLOW}Categories: royalty, family, food, countries, animals, colors{OutputFormatter.RESET}")
-                print(f"{OutputFormatter.YELLOW}Example: visualize king queen prince princess{OutputFormatter.RESET}")
-                print(f"{OutputFormatter.YELLOW}Example: visualize family{OutputFormatter.RESET}")
-                return
-            result = self.command_handler.visualize(args)
-            print(self.formatter.format_visualize(result))
 
         else:
             print(f"{OutputFormatter.RED}Unknown command: {cmd}{OutputFormatter.RESET}")

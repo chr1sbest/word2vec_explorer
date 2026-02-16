@@ -109,6 +109,12 @@ word2vec> visualize family
 
 Uses FastText embeddings (300D vectors, Wikipedia + news, with subword information for rare words).
 
+**Visualizing Vector Space:**
+
+Words with similar meanings cluster together in vector space:
+
+![Word Embedding Visualization](examples/word_embedding_visualization.png)
+
 **The "king - man + woman = queen" magic:**
 - "king" vector = royalty + male
 - Subtract "man" = remove male
