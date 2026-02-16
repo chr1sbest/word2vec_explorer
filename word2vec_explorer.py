@@ -39,20 +39,21 @@ class ModelManager:
             size_mb = model_info.get('file_size', 0) / (1024*1024)
 
             # Check if already downloaded
-            from gensim.downloader import _get_download_file_name
             model_dir = os.path.join(api.BASE_DIR, self.model_name)
             is_cached = os.path.exists(model_dir)
 
             if not is_cached:
                 print(f"\n📥 Downloading {self.model_name}...")
                 print(f"   Size: {size_mb:.0f}MB")
-                print(f"   Destination: ~/.gensim-data/")
+                print(f"   Destination: {api.BASE_DIR}")
                 print(f"   (After download: ~30s to initialize into memory)\n")
             else:
                 print(f"\n📥 Loading {self.model_name} from cache...")
                 print(f"   (Initializing into memory: ~10-20s)\n")
-        except:
-            print(f"\n📥 Loading {self.model_name}...\n")
+        except Exception as e:
+            # Fallback if info check fails, but still show time estimate
+            print(f"\n📥 Loading {self.model_name}...")
+            print(f"   (Download + initialization may take 2-3 minutes on first run)\n")
 
         try:
             # Suppress gensim's verbose output but keep progress bar
