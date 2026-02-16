@@ -522,6 +522,65 @@ def list_available_models():
     print("Example: ./explore.sh --model glove-twitter-200\n")
 
 
+def select_model_interactive():
+    """Interactive model selector with 3 recommended options"""
+    print(f"\n{OutputFormatter.BOLD}{'='*60}{OutputFormatter.RESET}")
+    print(f"{OutputFormatter.BOLD}  Select Word Embedding Model{OutputFormatter.RESET}")
+    print(f"{OutputFormatter.BOLD}{'='*60}{OutputFormatter.RESET}\n")
+
+    models = [
+        {
+            'name': 'fasttext-wiki-news-subwords-300',
+            'display': 'FastText Wiki-News (Recommended)',
+            'size': '958MB',
+            'load_time': '2-5 min',
+            'description': 'Best for cultural/food analogies (japan:sushi → canada:poutine)',
+            'pros': '✓ Handles rare words  ✓ Best analogies  ✓ Moderate size'
+        },
+        {
+            'name': 'glove-wiki-gigaword-100',
+            'display': 'GloVe Wikipedia (Lightweight)',
+            'size': '128MB',
+            'load_time': '~30s',
+            'description': 'Fast loading, good for basic exploration',
+            'pros': '✓ Quick to load  ✓ Small download  ✓ Good accuracy'
+        },
+        {
+            'name': 'word2vec-google-news-300',
+            'display': 'Word2Vec Google News (Original)',
+            'size': '1.6GB',
+            'load_time': '3-8 min',
+            'description': 'Classic model from the original 2013 paper',
+            'pros': '✓ Largest vocabulary  ✓ News-focused  ✓ Most tested'
+        }
+    ]
+
+    for i, model in enumerate(models, 1):
+        print(f"{OutputFormatter.BOLD}{i}. {model['display']}{OutputFormatter.RESET}")
+        print(f"   {model['description']}")
+        print(f"   Size: {model['size']} | Load time: {model['load_time']}")
+        print(f"   {OutputFormatter.GREEN}{model['pros']}{OutputFormatter.RESET}")
+        print()
+
+    while True:
+        try:
+            choice = input("Choose model (1-3) [default: 1]: ").strip()
+            if not choice:
+                choice = '1'
+
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(models):
+                selected = models[choice_idx]
+                print(f"\n✓ Selected: {selected['display']}")
+                return selected['name']
+            else:
+                print(f"{OutputFormatter.RED}Please enter 1, 2, or 3{OutputFormatter.RESET}")
+        except (ValueError, KeyboardInterrupt):
+            print(f"\n{OutputFormatter.RED}Invalid choice. Please enter 1, 2, or 3{OutputFormatter.RESET}")
+        except EOFError:
+            print(f"\n{OutputFormatter.YELLOW}Using default (FastText){OutputFormatter.RESET}")
+            return models[0]['name']
+
 def main():
     """Entry point for word2vec explorer"""
     import argparse
@@ -535,7 +594,7 @@ def main():
         '--model',
         type=str,
         default=None,
-        help='Pre-trained model to use (default: word2vec-google-news-300)'
+        help='Pre-trained model to use (skips interactive selection)'
     )
 
     parser.add_argument(
@@ -550,7 +609,12 @@ def main():
         list_available_models()
         return
 
-    repl = WordVecREPL(model_name=args.model)
+    # If no model specified, show interactive selector
+    model_name = args.model
+    if model_name is None:
+        model_name = select_model_interactive()
+
+    repl = WordVecREPL(model_name=model_name)
     repl.start()
 
 if __name__ == "__main__":

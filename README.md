@@ -24,16 +24,21 @@ cd word2vec_explorer
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-# Run with default model (downloads 958MB on first run)
+# Run - you'll be prompted to choose a model with tradeoffs explained
 ./explore.sh
 
-# Or try a heavier/different model
+# Or skip selection and specify a model directly
 ./explore.sh --model word2vec-google-news-300  # 1.6GB, news-focused
-./explore.sh --model glove-wiki-gigaword-50    # 66MB, lightweight
+./explore.sh --model glove-wiki-gigaword-100   # 128MB, lightweight
 
 # List all available models
 ./explore.sh --list-models
 ```
+
+**First run:** You'll see an interactive menu to choose from 3 models:
+1. **FastText** (recommended) - Best analogies, 958MB, 2-5 min load
+2. **GloVe** (lightweight) - Fast, 128MB, 30s load
+3. **Word2Vec** (original) - Classic, 1.6GB, 3-8 min load
 
 ## 💡 Usage
 
