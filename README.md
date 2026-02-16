@@ -31,7 +31,7 @@ pip install -r requirements.txt
 ## 💡 Usage
 
 ```
-word2vec> analogy king man woman
+word2vec> analogy king:man woman:
    1. queen      0.7118 ████████████████
    2. monarch    0.6189 ████████████
 
@@ -56,7 +56,7 @@ word2vec> vector king
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `analogy w1 w2 w3` | Find X where w1:w2 :: w3:X | `analogy Paris France Italy` |
+| `analogy w1:w2 w3:` | Find X where w1:w2 :: w3:X | `analogy Paris:France Italy:` |
 | `similar word [n]` | N most similar words (default 10) | `similar coffee 5` |
 | `distance w1 w2` | Cosine similarity score | `distance cat dog` |
 | `find pattern` | Search with wildcards | `find AI_*` |

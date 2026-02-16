@@ -306,10 +306,10 @@ class WordVecREPL:
         help_text = f"""
 {OutputFormatter.BOLD}Available Commands:{OutputFormatter.RESET}
 
-  {OutputFormatter.BLUE}analogy{OutputFormatter.RESET} word1 word2 word3
+  {OutputFormatter.BLUE}analogy{OutputFormatter.RESET} word1:word2 word3:
       Find X where word1:word2 :: word3:X
-      Example: analogy king man woman
-               (finds "queen" - king is to man as woman is to queen)
+      Example: analogy king:man woman:
+               (finds "queen" - king is to man as woman is to ?)
 
   {OutputFormatter.BLUE}similar{OutputFormatter.RESET} word [n]
       Find N most similar words (default n=10)
@@ -345,11 +345,40 @@ class WordVecREPL:
         args = parts[1:]
 
         if cmd == 'analogy':
-            if len(args) < 3:
-                print(f"{OutputFormatter.RED}Usage: analogy word1 word2 word3 [n]{OutputFormatter.RESET}")
+            # Support both formats: "analogy king:man woman:" and "analogy king man woman"
+            if len(args) < 1:
+                print(f"{OutputFormatter.RED}Usage: analogy word1:word2 word3: [n]{OutputFormatter.RESET}")
+                print(f"{OutputFormatter.YELLOW}Example: analogy king:man woman:{OutputFormatter.RESET}")
                 return
-            n = int(args[3]) if len(args) > 3 else 10
-            result = self.command_handler.analogy(args[0], args[1], args[2], n)
+
+            # Parse colon format: "king:man woman:"
+            if ':' in args[0]:
+                try:
+                    pair1 = args[0].rstrip(':').split(':')
+                    if len(pair1) != 2:
+                        print(f"{OutputFormatter.RED}Invalid format. Use: word1:word2 word3:{OutputFormatter.RESET}")
+                        return
+                    word1, word2 = pair1[0], pair1[1]
+
+                    if len(args) < 2:
+                        print(f"{OutputFormatter.RED}Usage: analogy word1:word2 word3: [n]{OutputFormatter.RESET}")
+                        return
+
+                    word3 = args[1].rstrip(':')
+                    n = int(args[2]) if len(args) > 2 else 10
+                except (ValueError, IndexError):
+                    print(f"{OutputFormatter.RED}Invalid format. Example: analogy king:man woman:{OutputFormatter.RESET}")
+                    return
+            # Support old format for backwards compatibility
+            elif len(args) >= 3:
+                word1, word2, word3 = args[0], args[1], args[2]
+                n = int(args[3]) if len(args) > 3 else 10
+            else:
+                print(f"{OutputFormatter.RED}Usage: analogy word1:word2 word3: [n]{OutputFormatter.RESET}")
+                print(f"{OutputFormatter.YELLOW}Example: analogy king:man woman:{OutputFormatter.RESET}")
+                return
+
+            result = self.command_handler.analogy(word1, word2, word3, n)
             print(self.formatter.format_analogy(result))
 
         elif cmd == 'similar':
