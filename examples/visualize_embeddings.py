@@ -20,11 +20,12 @@ def visualize_word_relationships():
     model = api.load('fasttext-wiki-news-subwords-300')
 
     # Define word groups with semantic relationships
+    # Using fewer words to avoid overlap, selected for good separation
     word_groups = {
-        'Royalty': ['king', 'queen', 'prince', 'princess'],
-        'Family': ['man', 'woman', 'uncle', 'aunt', 'father', 'mother'],
-        'Food': ['sushi', 'pasta', 'pizza', 'poutine', 'taco'],
-        'Countries': ['japan', 'canada', 'italy', 'germany', 'france']
+        'Royalty': ['king', 'queen', 'prince'],
+        'Family': ['uncle', 'aunt', 'father'],
+        'Food': ['sushi', 'pizza', 'taco'],
+        'Countries': ['japan', 'italy', 'spain', 'china']
     }
 
     # Flatten all words and get their vectors
@@ -61,18 +62,19 @@ def visualize_word_relationships():
                   s=200, alpha=0.6, c=colors[group], label=group,
                   edgecolors='black', linewidth=1.5)
 
-    # Add word labels
+    # Add word labels with better positioning
     for i, word in enumerate(all_words):
         ax.annotate(word,
                    xy=(coords_2d[i, 0], coords_2d[i, 1]),
-                   xytext=(8, 8),
+                   xytext=(10, 10),
                    textcoords='offset points',
-                   fontsize=11,
+                   fontsize=13,
                    fontweight='bold',
-                   bbox=dict(boxstyle='round,pad=0.3',
-                            facecolor=colors[group_labels[i]],
-                            alpha=0.2,
-                            edgecolor='none'))
+                   bbox=dict(boxstyle='round,pad=0.5',
+                            facecolor='white',
+                            alpha=0.9,
+                            edgecolor=colors[group_labels[i]],
+                            linewidth=2))
 
     # Styling
     ax.set_title('Word2Vec: How Words Cluster in Vector Space\n' +
@@ -87,11 +89,11 @@ def visualize_word_relationships():
 
     # Add explanation text
     explanation = (
-        "Related words cluster together:\n"
-        "• king ↔ queen (royalty + gender)\n"
-        "• man ↔ woman (family + gender)\n"
-        "• sushi ↔ pasta (food from different cultures)\n"
-        "• japan ↔ italy (countries)"
+        "Semantic relationships in vector space:\n"
+        "• Royalty cluster: king, queen, prince\n"
+        "• Family cluster: uncle, aunt, father\n"
+        "• Food cluster: sushi, pizza, taco\n"
+        "• Countries cluster: japan, italy, spain, china"
     )
     ax.text(0.02, 0.02, explanation,
            transform=ax.transAxes,
