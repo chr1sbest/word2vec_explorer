@@ -12,6 +12,7 @@ Interactive Python REPL for exploring word embeddings. Demonstrates the classic 
 - **Distance** - Compute cosine similarity between words
 - **Search** - Wildcard vocabulary search (`prog*` → programming, programmer...)
 - **Inspect** - View raw 300-dimensional embeddings
+- **Visualize** - 2D plots showing how words cluster in vector space
 
 Rich REPL with command history, autocomplete, and colored output.
 
@@ -85,6 +86,10 @@ word2vec> find quantum*
 word2vec> vector king
    300 dimensions: [-0.32, 0.28, 0.15...]
    Stats: min=-0.64, max=0.61, mean=-0.03
+
+word2vec> visualize family
+   ✓ Visualization created!
+   → 2D plot showing: man, woman, uncle, aunt, father, mother...
 ```
 
 ### Commands
@@ -96,6 +101,7 @@ word2vec> vector king
 | `distance w1 w2` | Cosine similarity score | `distance cat dog` |
 | `find pattern` | Search with wildcards | `find AI_*` |
 | `vector word` | Show embedding | `vector king` |
+| `visualize words...` | 2D plot of word relationships | `visualize king queen` or `visualize family` |
 | `help` | Show all commands | |
 | `quit` | Exit | |
 
