@@ -79,6 +79,17 @@ Uses Google's word2vec model (300D vectors, 3M words, trained on 100B words from
 - Python 3.8+
 - ~2GB disk space for model
 
+## 🔧 Troubleshooting
+
+**Architecture mismatch error on Apple Silicon?**
+```bash
+# Delete and recreate the virtual environment
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
 ## 🤝 Contributing
 
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
