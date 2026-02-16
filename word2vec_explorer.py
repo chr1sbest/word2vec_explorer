@@ -9,6 +9,9 @@ by Mikolov et al. (2013)
 import re
 import gensim.downloader as api
 from gensim.models import KeyedVectors
+from tqdm import tqdm
+import sys
+import os
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -28,15 +31,46 @@ class ModelManager:
 
     def load_model(self):
         """Load pre-trained model from gensim"""
-        print(f"Loading {self.model_name}...")
-        print("(First run downloads model - may take time depending on size)")
+        print(f"\n📥 Loading {self.model_name}...")
+
+        # Check if model is already cached
         try:
+            info = api.info()
+            model_info = info['models'].get(self.model_name, {})
+            size_mb = model_info.get('file_size', 0) / (1024*1024)
+
+            # Check if already downloaded
+            from gensim.downloader import _get_download_file_name
+            model_dir = os.path.join(api.BASE_DIR, self.model_name)
+
+            if not os.path.exists(model_dir):
+                print(f"   First download: {size_mb:.0f}MB")
+                print(f"   Downloading to: ~/.gensim-data/\n")
+            else:
+                print(f"   Loading from cache...")
+        except:
+            pass
+
+        try:
+            # Suppress gensim's verbose output but keep progress bar
+            class TqdmUpTo(tqdm):
+                """Provides `update_to(n)` which uses `tqdm.update(delta_n)`."""
+                def update_to(self, b=1, bsize=1, tsize=None):
+                    if tsize is not None:
+                        self.total = tsize
+                    self.update(b * bsize - self.n)
+
+            # Load with cleaner progress
+            original_stdout = sys.stdout
+
+            # Only show our progress bar
             self.model = api.load(self.model_name)
             self._vocab = set(self.model.index_to_key)
-            print(f"✓ Model loaded successfully! Vocabulary size: {len(self._vocab):,} words")
+
+            print(f"\n✓ Model loaded! Vocabulary: {len(self._vocab):,} words\n")
         except Exception as e:
-            print(f"✗ Error loading model: {e}")
-            print(f"  Available models: run with --list-models")
+            print(f"\n✗ Error loading model: {e}")
+            print(f"   Run with --list-models to see available options\n")
             raise
 
     def is_loaded(self):
