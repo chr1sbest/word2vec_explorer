@@ -17,22 +17,26 @@ from prompt_toolkit.completion import WordCompleter
 class ModelManager:
     """Manages word2vec model loading and operations"""
 
-    def __init__(self, auto_load=True):
+    DEFAULT_MODEL = "word2vec-google-news-300"
+
+    def __init__(self, auto_load=True, model_name=None):
         self.model = None
         self._vocab = None
+        self.model_name = model_name or self.DEFAULT_MODEL
         if auto_load:
             self.load_model()
 
     def load_model(self):
-        """Load pre-trained word2vec model from gensim"""
-        print("Loading word2vec model (this takes 30-60 seconds on first run)...")
+        """Load pre-trained model from gensim"""
+        print(f"Loading {self.model_name}...")
+        print("(First run downloads model - may take time depending on size)")
         try:
-            self.model = api.load("word2vec-google-news-300")
+            self.model = api.load(self.model_name)
             self._vocab = set(self.model.index_to_key)
             print(f"✓ Model loaded successfully! Vocabulary size: {len(self._vocab):,} words")
         except Exception as e:
             print(f"✗ Error loading model: {e}")
-            print("  Run: python -c 'import gensim.downloader as api; api.load(\"word2vec-google-news-300\")'")
+            print(f"  Available models: run with --list-models")
             raise
 
     def is_loaded(self):
@@ -252,10 +256,11 @@ class WordVecREPL:
 
     COMMANDS = ['analogy', 'similar', 'distance', 'find', 'vector', 'help', 'quit', 'exit']
 
-    def __init__(self):
+    def __init__(self, model_name=None):
         self.model_manager = None
         self.command_handler = None
         self.formatter = OutputFormatter()
+        self.model_name = model_name
         self.session = PromptSession(
             history=InMemoryHistory(),
             auto_suggest=AutoSuggestFromHistory(),
@@ -267,7 +272,7 @@ class WordVecREPL:
         self.print_welcome()
 
         # Load model
-        self.model_manager = ModelManager()
+        self.model_manager = ModelManager(model_name=self.model_name)
         self.command_handler = CommandHandler(self.model_manager)
 
         # Main loop
@@ -414,9 +419,75 @@ class WordVecREPL:
             print(f"{OutputFormatter.RED}Unknown command: {cmd}{OutputFormatter.RESET}")
             print("Type 'help' for available commands.")
 
+def list_available_models():
+    """List all available pre-trained models"""
+    print("\n📦 Available Pre-trained Models\n" + "="*60 + "\n")
+
+    models = api.info()['models']
+
+    # Categorize models
+    categories = {
+        'Word2Vec': [],
+        'GloVe': [],
+        'FastText': [],
+        'Other': []
+    }
+
+    for name, info in models.items():
+        size_mb = info.get('file_size', 0) / (1024*1024)
+        vocab = info.get('num_records', 'unknown')
+
+        if 'word2vec' in name:
+            categories['Word2Vec'].append((name, size_mb, vocab))
+        elif 'glove' in name:
+            categories['GloVe'].append((name, size_mb, vocab))
+        elif 'fasttext' in name:
+            categories['FastText'].append((name, size_mb, vocab))
+        elif 'testing' not in name:
+            categories['Other'].append((name, size_mb, vocab))
+
+    for category, items in categories.items():
+        if items:
+            print(f"\n{category}:")
+            for name, size_mb, vocab in items:
+                vocab_str = f"{vocab:,}" if isinstance(vocab, int) else str(vocab)
+                print(f"  • {name:45} {size_mb:6.0f}MB  {vocab_str:>12} words")
+
+    print(f"\n{'='*60}")
+    print("Default: word2vec-google-news-300")
+    print("\nUsage: ./explore.sh --model <model-name>")
+    print("Example: ./explore.sh --model glove-twitter-200\n")
+
+
 def main():
     """Entry point for word2vec explorer"""
-    repl = WordVecREPL()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Word2Vec Explorer - Interactive REPL for exploring word embeddings',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    parser.add_argument(
+        '--model',
+        type=str,
+        default=None,
+        help='Pre-trained model to use (default: word2vec-google-news-300)'
+    )
+
+    parser.add_argument(
+        '--list-models',
+        action='store_true',
+        help='List all available pre-trained models and exit'
+    )
+
+    args = parser.parse_args()
+
+    if args.list_models:
+        list_available_models()
+        return
+
+    repl = WordVecREPL(model_name=args.model)
     repl.start()
 
 if __name__ == "__main__":

@@ -24,8 +24,15 @@ cd word2vec_explorer
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-# Run (downloads 1.5GB model on first run)
+# Run with default model (downloads 1.5GB on first run)
 ./explore.sh
+
+# Or try a lighter/different model
+./explore.sh --model glove-twitter-100        # 387MB, casual language
+./explore.sh --model glove-wiki-gigaword-50  # 66MB, lightweight
+
+# List all available models
+./explore.sh --list-models
 ```
 
 ## 💡 Usage
@@ -74,10 +81,22 @@ Uses Google's word2vec model (300D vectors, 3M words, trained on 100B words from
 - Add "woman" = add female
 - Result closest to "queen" = royalty + female
 
+## 🎛️ Model Selection
+
+**Default:** `word2vec-google-news-300` (1.6GB, 3M words)
+
+**Popular alternatives:**
+- `glove-twitter-100` (387MB) - Casual language, better for slang/culture
+- `glove-wiki-gigaword-100` (128MB) - Wikipedia + news, general purpose
+- `fasttext-wiki-news-subwords-300` (958MB) - Handles typos and rare words
+- `conceptnet-numberbatch-17-06-300` (1.2GB) - Common sense relationships
+
+Models are downloaded once and cached in `~/.gensim-data/`
+
 ## 📋 Requirements
 
 - Python 3.8+
-- ~2GB disk space for model
+- 66MB - 1.6GB disk space (depends on model)
 
 ## 🔧 Troubleshooting
 
