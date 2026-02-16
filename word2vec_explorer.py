@@ -20,7 +20,7 @@ from prompt_toolkit.completion import WordCompleter
 class ModelManager:
     """Manages word2vec model loading and operations"""
 
-    DEFAULT_MODEL = "word2vec-google-news-300"
+    DEFAULT_MODEL = "fasttext-wiki-news-subwords-300"
 
     def __init__(self, auto_load=True, model_name=None):
         self.model = None
