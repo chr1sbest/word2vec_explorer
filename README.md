@@ -18,13 +18,33 @@ An interactive Python REPL for exploring word embeddings using the classic word2
 - Python 3.8 or higher
 - ~2GB disk space for the pre-trained model
 
-### Setup
+### Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/word2vec-explorer.git
+cd word2vec-explorer
+
+# Create and activate virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 # Install dependencies
 pip install -r requirements.txt
 
 # Run the explorer (downloads model on first run - takes 30-60 seconds)
+python3 word2vec_explorer.py
+
+# Or use the convenient launcher script (Unix/Mac only)
+chmod +x explore.sh
+./explore.sh
+```
+
+### Alternative: Direct Installation
+
+```bash
+# Install globally (not recommended)
+pip install -r requirements.txt
 python3 word2vec_explorer.py
 ```
 
@@ -131,6 +151,18 @@ The famous "king - man + woman = queen" example works because:
 - [word2vec Parameter Learning Explained](https://arxiv.org/abs/1411.2738)
 - [Gensim documentation](https://radimrehurek.com/gensim/)
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
 ## License
 
-Educational project - see original word2vec and gensim licenses for model usage.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+This is an educational project. The pre-trained word2vec model is provided by Google Research and distributed through gensim under the Apache 2.0 License.
+
+## Acknowledgments
+
+- Original word2vec paper by Mikolov et al. (2013)
+- [Gensim](https://radimrehurek.com/gensim/) for providing easy access to pre-trained models
+- Google Research for the pre-trained word2vec model
