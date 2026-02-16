@@ -50,3 +50,4 @@ htmlcov/
 *.log
 .beads/issues.jsonl
 .beads/interactions.jsonl
+venv_arm64/
