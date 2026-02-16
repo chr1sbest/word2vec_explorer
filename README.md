@@ -1,168 +1,97 @@
-# Word2Vec Explorer
+# 🔤 Word2Vec Explorer
 
-An interactive Python REPL for exploring word embeddings using the classic word2vec model. Perfect for learning about vector semantics and demonstrating the famous "king - man + woman = queen" analogy.
+Interactive Python REPL for exploring word embeddings. Demonstrates the classic "king - man + woman = queen" analogy using Google's pre-trained word2vec model.
 
-## Features
+![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-- **Analogy Exploration**: Find analogical relationships (e.g., king:man :: woman:?)
-- **Similarity Search**: Find words most similar to a given word
-- **Distance Calculation**: Compute cosine similarity between word pairs
-- **Vocabulary Search**: Find words matching patterns (with wildcard support)
-- **Vector Inspection**: View the actual embedding vectors
-- **Rich REPL**: Command history, auto-suggestions, and colored output
+## ✨ Features
 
-## Installation
+- **Analogy** - Vector arithmetic (king:man :: woman:?) → queen
+- **Similarity** - Find semantically similar words
+- **Distance** - Compute cosine similarity between words
+- **Search** - Wildcard vocabulary search (`prog*` → programming, programmer...)
+- **Inspect** - View raw 300-dimensional embeddings
 
-### Requirements
+Rich REPL with command history, autocomplete, and colored output.
 
-- Python 3.8 or higher
-- ~2GB disk space for the pre-trained model
-
-### Quick Start
+## 🚀 Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/word2vec-explorer.git
-cd word2vec-explorer
-
-# Create and activate virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+# Clone and setup
+git clone https://github.com/chr1sbest/word2vec_explorer.git
+cd word2vec_explorer
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-# Run the explorer (downloads model on first run - takes 30-60 seconds)
-python3 word2vec_explorer.py
-
-# Or use the convenient launcher script (Unix/Mac only)
-chmod +x explore.sh
+# Run (downloads 1.5GB model on first run)
 ./explore.sh
 ```
 
-### Alternative: Direct Installation
-
-```bash
-# Install globally (not recommended)
-pip install -r requirements.txt
-python3 word2vec_explorer.py
-```
-
-## Usage
-
-### Available Commands
-
-#### Analogy: Find Analogical Relationships
+## 💡 Usage
 
 ```
 word2vec> analogy king man woman
-```
+   1. queen      0.7118 ████████████████
+   2. monarch    0.6189 ████████████
 
-Finds words where "king is to man as woman is to X" (typically finds "queen")
+word2vec> similar python 5
+   1. pythons    0.6688 █████████████
+   2. snake      0.6606 █████████████
 
-#### Similar: Find Similar Words
+word2vec> distance happy sad
+   Similarity: 0.5355 █████████████████████
 
-```
-word2vec> similar python 10
-```
+word2vec> find quantum*
+   • quantum_mechanics
+   • quantum_physics
+   • quantum_computing
 
-Shows the 10 most similar words to "python"
-
-#### Distance: Calculate Similarity
-
-```
-word2vec> distance cat dog
-```
-
-Shows the cosine similarity score between "cat" and "dog"
-
-#### Find: Search Vocabulary
-
-```
-word2vec> find prog*
-```
-
-Finds all words starting with "prog" (program, programming, etc.)
-
-#### Vector: Inspect Embeddings
-
-```
 word2vec> vector king
+   300 dimensions: [-0.32, 0.28, 0.15...]
+   Stats: min=-0.64, max=0.61, mean=-0.03
 ```
 
-Displays the 300-dimensional embedding vector for "king"
+### Commands
 
-### Example Session
+| Command | Description | Example |
+|---------|-------------|---------|
+| `analogy w1 w2 w3` | Find X where w1:w2 :: w3:X | `analogy Paris France Italy` |
+| `similar word [n]` | N most similar words (default 10) | `similar coffee 5` |
+| `distance w1 w2` | Cosine similarity score | `distance cat dog` |
+| `find pattern` | Search with wildcards | `find AI_*` |
+| `vector word` | Show embedding | `vector king` |
+| `help` | Show all commands | |
+| `quit` | Exit | |
 
-```
-word2vec> analogy king man woman
+## 🧠 How It Works
 
-king:man :: woman:?
+Uses Google's word2vec model (300D vectors, 3M words, trained on 100B words from Google News).
 
-   1. queen                0.7118 ████████████████
-   2. monarch              0.6189 ████████████
-   3. princess             0.5902 ███████████
-   4. crown_prince         0.5499 ██████████
+**The "king - man + woman = queen" magic:**
+- "king" vector = royalty + male
+- Subtract "man" = remove male
+- Add "woman" = add female
+- Result closest to "queen" = royalty + female
 
-word2vec> similar queen 5
+## 📋 Requirements
 
-Most similar to 'queen':
+- Python 3.8+
+- ~2GB disk space for model
 
-   1. princess             0.6510 █████████████
-   2. monarch              0.6413 ████████████
-   3. throne               0.5964 ███████████
-   4. elizabeth            0.5896 ███████████
-   5. royal                0.5643 ███████████
+## 🤝 Contributing
 
-word2vec> distance cat dog
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Distance between 'cat' and 'dog':
-  Similarity: 0.7608 ██████████████████████████████
-```
+## 📚 References
 
-## How It Works
+- [Word2Vec Paper](https://arxiv.org/abs/1301.3781) - Mikolov et al. (2013)
+- [Gensim](https://radimrehurek.com/gensim/) - Model provider
 
-This tool uses Google's pre-trained word2vec model (300-dimensional vectors trained on ~100 billion words from Google News). The model represents each word as a 300-dimensional vector where semantically similar words have similar vectors.
+## 📄 License
 
-The famous "king - man + woman = queen" example works because:
-- The vector for "king" contains both "royalty" and "male" semantic components
-- Subtracting "man" removes the "male" component
-- Adding "woman" adds the "female" component
-- The result is closest to "queen" (royalty + female)
+MIT License - see [LICENSE](LICENSE)
 
-## Technical Details
+---
 
-- **Model**: word2vec-google-news-300 (from gensim)
-- **Architecture**: Skip-gram with negative sampling
-- **Vocabulary**: ~3 million words
-- **Vector dimensions**: 300
-- **Similarity metric**: Cosine similarity
-
-## Tips
-
-- Words are case-sensitive (try "Paris" not "paris")
-- Multi-word phrases use underscores (e.g., "New_York")
-- Use wildcards in `find` command to explore the vocabulary
-- The `vector` command shows statistics (min, max, mean, std)
-
-## References
-
-- [Efficient Estimation of Word Representations in Vector Space](https://arxiv.org/abs/1301.3781) (original word2vec paper)
-- [word2vec Parameter Learning Explained](https://arxiv.org/abs/1411.2738)
-- [Gensim documentation](https://radimrehurek.com/gensim/)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-This is an educational project. The pre-trained word2vec model is provided by Google Research and distributed through gensim under the Apache 2.0 License.
-
-## Acknowledgments
-
-- Original word2vec paper by Mikolov et al. (2013)
-- [Gensim](https://radimrehurek.com/gensim/) for providing easy access to pre-trained models
-- Google Research for the pre-trained word2vec model
+**Educational project** • Pre-trained model © Google Research (Apache 2.0)
