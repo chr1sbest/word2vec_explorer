@@ -22,7 +22,7 @@ def visualize_word_relationships():
     # Define word groups with semantic relationships
     # Using fewer words to avoid overlap, selected for good separation
     word_groups = {
-        'Royalty': ['king', 'queen', 'prince'],
+        'Royalty': ['king', 'queen'],
         'Family': ['uncle', 'aunt', 'father'],
         'Food': ['sushi', 'pizza', 'taco'],
         'Countries': ['japan', 'italy', 'spain', 'china']
@@ -90,10 +90,10 @@ def visualize_word_relationships():
     # Add explanation text
     explanation = (
         "Semantic relationships in vector space:\n"
-        "• Royalty cluster: king, queen, prince\n"
-        "• Family cluster: uncle, aunt, father\n"
-        "• Food cluster: sushi, pizza, taco\n"
-        "• Countries cluster: japan, italy, spain, china"
+        "• Royalty: king, queen\n"
+        "• Family: uncle, aunt, father\n"
+        "• Food: sushi, pizza, taco\n"
+        "• Countries: japan, italy, spain, china"
     )
     ax.text(0.02, 0.02, explanation,
            transform=ax.transAxes,
