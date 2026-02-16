@@ -31,9 +31,8 @@ class ModelManager:
 
     def load_model(self):
         """Load pre-trained model from gensim"""
-        print(f"\n📥 Loading {self.model_name}...")
-
         # Check if model is already cached
+        is_cached = False
         try:
             info = api.info()
             model_info = info['models'].get(self.model_name, {})
@@ -42,14 +41,18 @@ class ModelManager:
             # Check if already downloaded
             from gensim.downloader import _get_download_file_name
             model_dir = os.path.join(api.BASE_DIR, self.model_name)
+            is_cached = os.path.exists(model_dir)
 
-            if not os.path.exists(model_dir):
-                print(f"   First download: {size_mb:.0f}MB")
-                print(f"   Downloading to: ~/.gensim-data/\n")
+            if not is_cached:
+                print(f"\n📥 Downloading {self.model_name}...")
+                print(f"   Size: {size_mb:.0f}MB")
+                print(f"   Destination: ~/.gensim-data/")
+                print(f"   (After download: ~30s to initialize into memory)\n")
             else:
-                print(f"   Loading from cache...")
+                print(f"\n📥 Loading {self.model_name} from cache...")
+                print(f"   (Initializing into memory: ~10-20s)\n")
         except:
-            pass
+            print(f"\n📥 Loading {self.model_name}...\n")
 
         try:
             # Suppress gensim's verbose output but keep progress bar
@@ -63,11 +66,12 @@ class ModelManager:
             # Load with cleaner progress
             original_stdout = sys.stdout
 
-            # Only show our progress bar
+            # Load model (download if needed + initialize into memory)
             self.model = api.load(self.model_name)
+
             self._vocab = set(self.model.index_to_key)
 
-            print(f"\n✓ Model loaded! Vocabulary: {len(self._vocab):,} words\n")
+            print(f"✓ Ready! Vocabulary: {len(self._vocab):,} words\n")
         except Exception as e:
             print(f"\n✗ Error loading model: {e}")
             print(f"   Run with --list-models to see available options\n")
