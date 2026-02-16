@@ -37,11 +37,34 @@ pip install -r requirements.txt
 
 ## 💡 Usage
 
+**Classic examples:**
 ```
 word2vec> analogy king:man woman:
    1. queen      0.7118 ████████████████
    2. monarch    0.6189 ████████████
 
+word2vec> analogy paris:france italy:
+   1. rome       0.7198 ████████████████
+   2. venice     0.6648 █████████████
+```
+
+**Cultural/food analogies (FastText excels at these!):**
+```
+word2vec> analogy japan:sushi canada:
+   1. poutine    0.5861 ████████████
+   2. canadian   0.5301 ███████████
+
+word2vec> analogy germany:sausage italy:
+   1. prosciutto 0.6141 █████████████
+   2. fontina    0.6211 █████████████
+
+word2vec> analogy man:woman uncle:
+   1. aunt       0.8023 ████████████████
+   2. mother     0.7771 ███████████████
+```
+
+**Other commands:**
+```
 word2vec> similar python 5
    1. pythons    0.6688 █████████████
    2. snake      0.6606 █████████████
