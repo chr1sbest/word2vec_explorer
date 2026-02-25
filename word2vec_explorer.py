@@ -33,29 +33,24 @@ class ModelManager:
 
     def load_model(self):
         """Load pre-trained model from gensim"""
-        # Check if model is already cached
-        is_cached = False
-        try:
-            info = api.info()
-            model_info = info['models'].get(self.model_name, {})
-            size_mb = model_info.get('file_size', 0) / (1024*1024)
+        model_dir = os.path.join(api.BASE_DIR, self.model_name)
+        is_cached = os.path.isdir(model_dir)
 
-            # Check if already downloaded
-            model_dir = os.path.join(api.BASE_DIR, self.model_name)
-            is_cached = os.path.exists(model_dir)
-
-            if not is_cached:
+        if is_cached:
+            print(f"\n📥 Loading {self.model_name} from cache...")
+            print(f"   (Initializing into memory: 2-5 minutes)\n")
+        else:
+            # Need network — try to fetch size info for display
+            try:
+                model_info = api.info()['models'].get(self.model_name, {})
+                size_mb = model_info.get('file_size', 0) / (1024 * 1024)
                 print(f"\n📥 Downloading {self.model_name}...")
                 print(f"   Size: {size_mb:.0f}MB")
                 print(f"   Destination: {api.BASE_DIR}")
                 print(f"   (After download: 2-5 min to initialize into memory)\n")
-            else:
-                print(f"\n📥 Loading {self.model_name} from cache...")
-                print(f"   (Initializing into memory: 2-5 minutes)\n")
-        except Exception as e:
-            # Fallback if info check fails, but still show time estimate
-            print(f"\n📥 Loading {self.model_name}...")
-            print(f"   (Download + initialization: 3-8 minutes on first run)\n")
+            except Exception:
+                print(f"\n📥 Downloading {self.model_name}...")
+                print(f"   (Download + initialization: 3-8 minutes on first run)\n")
 
         # Spinner for initialization phase
         stop_spinner = threading.Event()
@@ -70,23 +65,18 @@ class ModelManager:
             print('\r' + ' ' * 50 + '\r', end='', flush=True)  # Clear spinner line
 
         try:
-            # Suppress gensim's verbose output but keep progress bar
-            class TqdmUpTo(tqdm):
-                """Provides `update_to(n)` which uses `tqdm.update(delta_n)`."""
-                def update_to(self, b=1, bsize=1, tsize=None):
-                    if tsize is not None:
-                        self.total = tsize
-                    self.update(b * bsize - self.n)
-
-            # Load with cleaner progress
-            original_stdout = sys.stdout
-
             # Start spinner thread for initialization
             spinner_thread = threading.Thread(target=show_spinner, daemon=True)
             spinner_thread.start()
 
-            # Load model (download if needed + initialize into memory)
-            self.model = api.load(self.model_name)
+            if is_cached:
+                # Load directly from disk — no network needed
+                sys.path.insert(0, api.BASE_DIR)
+                module = __import__(self.model_name)
+                self.model = module.load_data()
+            else:
+                # Not cached: use api.load() which will download then load
+                self.model = api.load(self.model_name)
 
             # Stop spinner
             stop_spinner.set()
@@ -96,7 +86,10 @@ class ModelManager:
 
             print(f"✓ Ready! Vocabulary: {len(self._vocab):,} words\n")
         except Exception as e:
+            stop_spinner.set()
             print(f"\n✗ Error loading model: {e}")
+            if not is_cached:
+                print(f"   A network connection is required to download the model on first run.")
             print(f"   Run with --list-models to see available options\n")
             raise
 
