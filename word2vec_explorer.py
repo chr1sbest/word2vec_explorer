@@ -19,28 +19,29 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import WordCompleter
 
-# Metadata for supported models — avoids relying on gensim's api.info()
-# which fetches a remote JSON file that can be unavailable.
+# Metadata for supported models.
+# Models are hosted on HuggingFace (fse org) in gensim native format:
+#   {name}.model            — vocabulary + metadata
+#   {name}.model.vectors.npy — float32 vector array (the large file)
 MODEL_REGISTRY = {
     'fasttext-wiki-news-subwords-300': {
-        'size_mb': 958,
+        'size_mb': 1_255,   # ~55MB + ~1.2GB uncompressed
         'num_records': 999_999,
         'description': '1M word vectors trained on Wikipedia 2017 + news (16B tokens)',
     },
     'glove-wiki-gigaword-100': {
-        'size_mb': 128,
+        'size_mb': 182,     # ~22MB + ~160MB uncompressed
         'num_records': 400_000,
         'description': 'GloVe vectors trained on Wikipedia 2014 + Gigaword 5 (6B tokens)',
     },
     'word2vec-google-news-300': {
-        'size_mb': 1_663,
+        'size_mb': 3_782,   # ~182MB + ~3.6GB uncompressed
         'num_records': 3_000_000,
         'description': 'Word2Vec vectors trained on Google News (~100B words)',
     },
 }
 
-# Base URL for model files — same source gensim uses internally
-GENSIM_RELEASES = "https://github.com/RaRe-Technologies/gensim-data/releases/download"
+HF_BASE = "https://huggingface.co/fse"
 
 class ModelManager:
     """Manages word2vec model loading and operations"""
@@ -54,22 +55,8 @@ class ModelManager:
         if auto_load:
             self.load_model()
 
-    def _download_model(self, model_dir):
-        """Download model files directly from GitHub releases."""
-        import shutil
-        os.makedirs(model_dir, exist_ok=True)
-        base_url = f"{GENSIM_RELEASES}/{self.model_name}"
-
-        # Download __init__.py (needed by load_data())
-        urllib.request.urlretrieve(
-            f"{base_url}/__init__.py",
-            os.path.join(model_dir, "__init__.py")
-        )
-
-        # Download model file with progress bar
-        model_file = f"{self.model_name}.gz"
-        model_path = os.path.join(model_dir, model_file)
-
+    def _download_file(self, url, dest, label):
+        """Download a single file with a progress bar."""
         def show_progress(count, block_size, total_size):
             if total_size > 0:
                 pct = min(count * block_size / total_size, 1.0)
@@ -77,34 +64,63 @@ class ModelManager:
                 total_mb = total_size / 1024 ** 2
                 filled = int(pct * 40)
                 bar = "█" * filled + "─" * (40 - filled)
-                print(f"\r   [{bar}] {pct*100:.1f}% {done_mb:.0f}/{total_mb:.0f}MB", end='', flush=True)
+                print(f"\r   {label}: [{bar}] {pct*100:.1f}% {done_mb:.0f}/{total_mb:.0f}MB",
+                      end='', flush=True)
+        urllib.request.urlretrieve(url, dest, reporthook=show_progress)
+        print()  # newline after progress bar
+
+    def _download_model(self, model_dir):
+        """Download model from HuggingFace (fse org) in gensim native format."""
+        import shutil
+        os.makedirs(model_dir, exist_ok=True)
+        base_url = f"{HF_BASE}/{self.model_name}/resolve/main"
+        stem = self.model_name
 
         try:
-            urllib.request.urlretrieve(f"{base_url}/{model_file}", model_path, reporthook=show_progress)
-            print()  # newline after progress bar
+            self._download_file(
+                f"{base_url}/{stem}.model",
+                os.path.join(model_dir, f"{stem}.model"),
+                "metadata"
+            )
+            self._download_file(
+                f"{base_url}/{stem}.model.vectors.npy",
+                os.path.join(model_dir, f"{stem}.model.vectors.npy"),
+                "vectors "
+            )
         except Exception:
-            # Clean up partial download
             if os.path.isdir(model_dir):
                 shutil.rmtree(model_dir)
             raise
 
+    def _hf_model_path(self, model_dir):
+        """Return the .model path if a HuggingFace download is cached, else None."""
+        path = os.path.join(model_dir, f"{self.model_name}.model")
+        return path if os.path.isfile(path) else None
+
+    def _legacy_cached(self, model_dir):
+        """Return True if a legacy gensim-data download exists (old .gz format)."""
+        return (os.path.isfile(os.path.join(model_dir, f"{self.model_name}.gz")) and
+                os.path.isfile(os.path.join(model_dir, "__init__.py")))
+
     def load_model(self):
         """Load pre-trained model"""
         model_dir = os.path.join(api.BASE_DIR, self.model_name)
-        is_cached = os.path.isdir(model_dir)
+        hf_path = self._hf_model_path(model_dir)
+        legacy = self._legacy_cached(model_dir)
+        is_cached = hf_path is not None or legacy
 
         if is_cached:
             print(f"\n📥 Loading {self.model_name} from cache...")
-            print(f"   (Initializing into memory: 2-5 minutes)\n")
+            print(f"   (Initializing into memory — may take a few minutes)\n")
         else:
             meta = MODEL_REGISTRY.get(self.model_name, {})
             size_mb = meta.get('size_mb', '?')
-            print(f"\n📥 Downloading {self.model_name}...")
-            print(f"   Size: ~{size_mb}MB")
-            print(f"   Destination: {api.BASE_DIR}\n")
+            print(f"\n📥 Downloading {self.model_name} from HuggingFace...")
+            print(f"   Size: ~{size_mb}MB  |  Destination: {api.BASE_DIR}\n")
             try:
                 self._download_model(model_dir)
-                print(f"\n   ✓ Download complete. Initializing into memory (2-5 min)...\n")
+                hf_path = self._hf_model_path(model_dir)
+                print(f"\n   ✓ Download complete. Initializing into memory...\n")
             except Exception as e:
                 print(f"\n✗ Download failed: {e}")
                 print(f"   Please check your internet connection and try again.\n")
@@ -125,9 +141,14 @@ class ModelManager:
             spinner_thread = threading.Thread(target=show_spinner, daemon=True)
             spinner_thread.start()
 
-            sys.path.insert(0, api.BASE_DIR)
-            module = __import__(self.model_name)
-            self.model = module.load_data()
+            if hf_path:
+                # HuggingFace native gensim format
+                self.model = KeyedVectors.load(hf_path)
+            else:
+                # Legacy gensim-data format (old .gz + __init__.py)
+                sys.path.insert(0, api.BASE_DIR)
+                module = __import__(self.model_name)
+                self.model = module.load_data()
 
             stop_spinner.set()
             spinner_thread.join(timeout=0.5)
