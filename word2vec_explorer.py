@@ -335,7 +335,12 @@ class WordVecREPL:
         self.print_welcome()
 
         # Load model
-        self.model_manager = ModelManager(model_name=self.model_name)
+        try:
+            self.model_manager = ModelManager(model_name=self.model_name)
+        except Exception:
+            print("\nPlease check your internet connection and try again.")
+            print("On first run, a network connection is required to download model data.\n")
+            return
         self.command_handler = CommandHandler(self.model_manager)
 
         # Main loop
@@ -486,7 +491,12 @@ def list_available_models():
     """List all available pre-trained models"""
     print("\n📦 Available Pre-trained Models\n" + "="*60 + "\n")
 
-    models = api.info()['models']
+    try:
+        models = api.info()['models']
+    except Exception as e:
+        print(f"✗ Unable to retrieve model list: {e}")
+        print("  Please check your internet connection and try again.\n")
+        return
 
     # Categorize models
     categories = {
