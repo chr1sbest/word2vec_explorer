@@ -7,9 +7,9 @@ by Mikolov et al. (2013)
 """
 
 import re
+import urllib.request
 import gensim.downloader as api
 from gensim.models import KeyedVectors
-from tqdm import tqdm
 import sys
 import os
 import threading
@@ -18,6 +18,29 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import WordCompleter
+
+# Metadata for supported models — avoids relying on gensim's api.info()
+# which fetches a remote JSON file that can be unavailable.
+MODEL_REGISTRY = {
+    'fasttext-wiki-news-subwords-300': {
+        'size_mb': 958,
+        'num_records': 999_999,
+        'description': '1M word vectors trained on Wikipedia 2017 + news (16B tokens)',
+    },
+    'glove-wiki-gigaword-100': {
+        'size_mb': 128,
+        'num_records': 400_000,
+        'description': 'GloVe vectors trained on Wikipedia 2014 + Gigaword 5 (6B tokens)',
+    },
+    'word2vec-google-news-300': {
+        'size_mb': 1_663,
+        'num_records': 3_000_000,
+        'description': 'Word2Vec vectors trained on Google News (~100B words)',
+    },
+}
+
+# Base URL for model files — same source gensim uses internally
+GENSIM_RELEASES = "https://github.com/RaRe-Technologies/gensim-data/releases/download"
 
 class ModelManager:
     """Manages word2vec model loading and operations"""
@@ -31,8 +54,42 @@ class ModelManager:
         if auto_load:
             self.load_model()
 
+    def _download_model(self, model_dir):
+        """Download model files directly from GitHub releases."""
+        import shutil
+        os.makedirs(model_dir, exist_ok=True)
+        base_url = f"{GENSIM_RELEASES}/{self.model_name}"
+
+        # Download __init__.py (needed by load_data())
+        urllib.request.urlretrieve(
+            f"{base_url}/__init__.py",
+            os.path.join(model_dir, "__init__.py")
+        )
+
+        # Download model file with progress bar
+        model_file = f"{self.model_name}.gz"
+        model_path = os.path.join(model_dir, model_file)
+
+        def show_progress(count, block_size, total_size):
+            if total_size > 0:
+                pct = min(count * block_size / total_size, 1.0)
+                done_mb = count * block_size / 1024 ** 2
+                total_mb = total_size / 1024 ** 2
+                filled = int(pct * 40)
+                bar = "█" * filled + "─" * (40 - filled)
+                print(f"\r   [{bar}] {pct*100:.1f}% {done_mb:.0f}/{total_mb:.0f}MB", end='', flush=True)
+
+        try:
+            urllib.request.urlretrieve(f"{base_url}/{model_file}", model_path, reporthook=show_progress)
+            print()  # newline after progress bar
+        except Exception:
+            # Clean up partial download
+            if os.path.isdir(model_dir):
+                shutil.rmtree(model_dir)
+            raise
+
     def load_model(self):
-        """Load pre-trained model from gensim"""
+        """Load pre-trained model"""
         model_dir = os.path.join(api.BASE_DIR, self.model_name)
         is_cached = os.path.isdir(model_dir)
 
@@ -40,56 +97,46 @@ class ModelManager:
             print(f"\n📥 Loading {self.model_name} from cache...")
             print(f"   (Initializing into memory: 2-5 minutes)\n")
         else:
-            # Need network — try to fetch size info for display
+            meta = MODEL_REGISTRY.get(self.model_name, {})
+            size_mb = meta.get('size_mb', '?')
+            print(f"\n📥 Downloading {self.model_name}...")
+            print(f"   Size: ~{size_mb}MB")
+            print(f"   Destination: {api.BASE_DIR}\n")
             try:
-                model_info = api.info()['models'].get(self.model_name, {})
-                size_mb = model_info.get('file_size', 0) / (1024 * 1024)
-                print(f"\n📥 Downloading {self.model_name}...")
-                print(f"   Size: {size_mb:.0f}MB")
-                print(f"   Destination: {api.BASE_DIR}")
-                print(f"   (After download: 2-5 min to initialize into memory)\n")
-            except Exception:
-                print(f"\n📥 Downloading {self.model_name}...")
-                print(f"   (Download + initialization: 3-8 minutes on first run)\n")
+                self._download_model(model_dir)
+                print(f"\n   ✓ Download complete. Initializing into memory (2-5 min)...\n")
+            except Exception as e:
+                print(f"\n✗ Download failed: {e}")
+                print(f"   Please check your internet connection and try again.\n")
+                raise
 
-        # Spinner for initialization phase
+        # Spinner only during the memory-initialization phase
         stop_spinner = threading.Event()
         def show_spinner():
-            """Show a spinner during model initialization"""
             spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
             idx = 0
             while not stop_spinner.is_set():
                 print(f'\r⚙️  Initializing model {spinner_chars[idx % len(spinner_chars)]}', end='', flush=True)
                 idx += 1
                 time.sleep(0.1)
-            print('\r' + ' ' * 50 + '\r', end='', flush=True)  # Clear spinner line
+            print('\r' + ' ' * 50 + '\r', end='', flush=True)
 
         try:
-            # Start spinner thread for initialization
             spinner_thread = threading.Thread(target=show_spinner, daemon=True)
             spinner_thread.start()
 
-            if is_cached:
-                # Load directly from disk — no network needed
-                sys.path.insert(0, api.BASE_DIR)
-                module = __import__(self.model_name)
-                self.model = module.load_data()
-            else:
-                # Not cached: use api.load() which will download then load
-                self.model = api.load(self.model_name)
+            sys.path.insert(0, api.BASE_DIR)
+            module = __import__(self.model_name)
+            self.model = module.load_data()
 
-            # Stop spinner
             stop_spinner.set()
             spinner_thread.join(timeout=0.5)
 
             self._vocab = set(self.model.index_to_key)
-
             print(f"✓ Ready! Vocabulary: {len(self._vocab):,} words\n")
         except Exception as e:
             stop_spinner.set()
             print(f"\n✗ Error loading model: {e}")
-            if not is_cached:
-                print(f"   A network connection is required to download the model on first run.")
             print(f"   Run with --list-models to see available options\n")
             raise
 
@@ -481,48 +528,30 @@ class WordVecREPL:
             print("Type 'help' for available commands.")
 
 def list_available_models():
-    """List all available pre-trained models"""
-    print("\n📦 Available Pre-trained Models\n" + "="*60 + "\n")
+    """List supported pre-trained models"""
+    print("\n📦 Supported Pre-trained Models\n" + "="*60 + "\n")
 
-    try:
-        models = api.info()['models']
-    except Exception as e:
-        print(f"✗ Unable to retrieve model list: {e}")
-        print("  Please check your internet connection and try again.\n")
-        return
-
-    # Categorize models
-    categories = {
-        'Word2Vec': [],
-        'GloVe': [],
-        'FastText': [],
-        'Other': []
-    }
-
-    for name, info in models.items():
-        size_mb = info.get('file_size', 0) / (1024*1024)
-        vocab = info.get('num_records', 'unknown')
-
-        if 'word2vec' in name:
-            categories['Word2Vec'].append((name, size_mb, vocab))
+    categories = {'FastText': [], 'GloVe': [], 'Word2Vec': []}
+    for name, meta in MODEL_REGISTRY.items():
+        entry = (name, meta['size_mb'], meta['num_records'], meta['description'])
+        if 'fasttext' in name:
+            categories['FastText'].append(entry)
         elif 'glove' in name:
-            categories['GloVe'].append((name, size_mb, vocab))
-        elif 'fasttext' in name:
-            categories['FastText'].append((name, size_mb, vocab))
-        elif 'testing' not in name:
-            categories['Other'].append((name, size_mb, vocab))
+            categories['GloVe'].append(entry)
+        elif 'word2vec' in name:
+            categories['Word2Vec'].append(entry)
 
     for category, items in categories.items():
         if items:
             print(f"\n{category}:")
-            for name, size_mb, vocab in items:
-                vocab_str = f"{vocab:,}" if isinstance(vocab, int) else str(vocab)
-                print(f"  • {name:45} {size_mb:6.0f}MB  {vocab_str:>12} words")
+            for name, size_mb, vocab, desc in items:
+                print(f"  • {name:45} {size_mb:5d}MB  {vocab:>12,} words")
+                print(f"    {desc}")
 
     print(f"\n{'='*60}")
-    print("Default: word2vec-google-news-300")
+    print(f"Default: {ModelManager.DEFAULT_MODEL}")
     print("\nUsage: ./explore.sh --model <model-name>")
-    print("Example: ./explore.sh --model glove-twitter-200\n")
+    print("Example: ./explore.sh --model glove-wiki-gigaword-100\n")
 
 
 def select_model_interactive():
